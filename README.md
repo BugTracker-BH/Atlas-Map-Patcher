@@ -5,7 +5,7 @@
 </div>
 
 ## Overview
-The **Atlas Tool Suite** is a unified, highly optimized single-file web application specifically engineered for Minecraft map creators. Submitting a world to Atlas has strict technical requirements oftentimes, third-party parsers crash due to corrupted `0-byte` region files, and specific promotional dimension rules must be adhered to.
+The **Atlas Tool Suite** is a unified, highly optimized single-file web application specifically engineered for Minecraft realms map makers. Submitting a world to Atlas has strict technical requirements oftentimes, third-party parsers crash due to corrupted `0-byte` region files, and specific promotional dimension rules must be adhered to.
 
 This lightweight tool operates **100% inside your browser**. Your map stays securely entirely on your machine.
 
