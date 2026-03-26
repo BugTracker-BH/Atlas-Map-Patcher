@@ -5,18 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas Tool Suite</title>
-    <!-- load jszip -->
+    <!-- TODO: Maybe add a favicon later? -->
+    <!-- load jszip - this library is a lifesaver for zip handling -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
         rel="stylesheet">
     <style>
+        /* Color scheme - tweaked these a bunch until they felt right */
         :root {
-            --bg-color: #0b0c10;
-            --surface-color: #1f2833;
-            --primary-color: #66fcf1;
-            --secondary-color: #45a29e;
-            --text-main: #c5c6c7;
+            --bg-color: #103a5c;
+            --surface-color: #2C6B9E;
+            --primary-color: #8ebdE8;
+            --secondary-color: #5e9d34;
+            --text-main: #f0f4f8;
             --text-bright: #ffffff;
             --error-color: #ff4b4b;
         }
@@ -28,7 +30,7 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
@@ -37,45 +39,35 @@
             align-items: center;
             justify-content: center;
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 15% 50%, rgba(69, 162, 158, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(102, 252, 241, 0.05), transparent 25%);
         }
 
         .container {
             max-width: 800px;
             width: 90%;
-            background: rgba(31, 40, 51, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(102, 252, 241, 0.1);
-            border-radius: 24px;
+            background: var(--surface-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
             padding: 3rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             text-align: center;
             position: relative;
             z-index: 10;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
             display: none;
+            /* default hidden, show on .active */
         }
 
         .container.active {
             display: block;
-            animation: fadeIn 0.4s ease forwards;
+            animation: fadeIn 0.15s ease forwards;
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
             }
-        }
-
-        .container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 35px 60px -15px rgba(102, 252, 241, 0.1);
         }
 
         h1 {
@@ -84,9 +76,6 @@
             font-weight: 800;
             color: var(--text-bright);
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--text-bright) 0%, var(--primary-color) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             letter-spacing: -1px;
         }
 
@@ -94,31 +83,33 @@
             font-size: 1.1rem;
             line-height: 1.6;
             margin-bottom: 2.5rem;
-            color: var(--secondary-color);
+            color: var(--text-bright);
+            opacity: 0.9;
         }
 
+        /* Warning message for converter tool */
         p.warning {
             font-size: 0.85rem;
             color: #ffb86c;
             margin-bottom: 1.5rem;
-            opacity: 0.9;
+            opacity: 1;
+            font-weight: bold;
         }
 
         .upload-area {
-            border: 2px dashed rgba(102, 252, 241, 0.3);
-            border-radius: 16px;
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
             padding: 4rem 2rem;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            background: rgba(11, 12, 16, 0.4);
+            background: rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
         }
 
-        .upload-area:hover,
         .upload-area.dragover {
-            border-color: var(--primary-color);
-            background: rgba(102, 252, 241, 0.05);
+            border-color: var(--text-bright);
+            background: rgba(0, 0, 0, 0.4);
         }
 
         .upload-icon {
@@ -126,11 +117,6 @@
             height: 64px;
             margin-bottom: 1rem;
             fill: var(--primary-color);
-            transition: transform 0.3s ease;
-        }
-
-        .upload-area:hover .upload-icon {
-            transform: translateY(-5px);
         }
 
         .upload-text {
@@ -142,8 +128,8 @@
 
         .upload-hint {
             font-size: 0.9rem;
-            color: var(--text-main);
-            opacity: 0.8;
+            color: var(--text-bright);
+            opacity: 0.7;
         }
 
         input[type="file"] {
@@ -153,18 +139,15 @@
         .status-container {
             margin-top: 2rem;
             display: none;
-            opacity: 0;
-            transition: opacity 0.4s ease;
         }
 
         .status-container.active {
             display: block;
-            opacity: 1;
         }
 
         .progress-bar-wrapper {
-            background: rgba(11, 12, 16, 0.8);
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
             height: 12px;
             width: 100%;
             overflow: hidden;
@@ -175,23 +158,21 @@
         .progress-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
-            border-radius: 8px;
+            background: var(--secondary-color);
             transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
         }
 
         .status-text {
             font-size: 1rem;
-            font-weight: 500;
+            font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 1rem;
         }
 
         .log-area {
-            background: #0b0c10;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            background: #000000;
+            border: 1px solid var(--text-main);
+            border-radius: 4px;
             padding: 1rem;
             height: 150px;
             overflow-y: auto;
@@ -204,12 +185,13 @@
 
         .log-entry {
             margin-bottom: 4px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 2px;
         }
 
         .log-entry.success {
-            color: #66fcf1;
+            color: var(--secondary-color);
+            font-weight: bold;
         }
 
         .log-entry.removed {
@@ -218,6 +200,7 @@
 
         .log-entry.error {
             color: var(--error-color);
+            font-weight: bold;
         }
 
         .action-buttons {
@@ -233,81 +216,51 @@
             font-size: 1.1rem;
             font-weight: 700;
             font-family: 'Outfit', sans-serif;
-            border-radius: 30px;
+            border-radius: 4px;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 1px;
-            transition: all 0.3s ease;
             display: none;
-            transform: translateY(10px);
-            opacity: 0;
-            border: none;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
         }
 
         .btn-download {
-            color: var(--bg-color);
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            box-shadow: 0 10px 20px -5px rgba(102, 252, 241, 0.4);
+            color: #0b0c10;
+            background: var(--primary-color);
         }
 
         .btn-reset {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-bright);
+            background: rgba(0, 0, 0, 0.5);
+            border-color: var(--text-main);
         }
 
         .visible {
             display: inline-block !important;
-            transform: translateY(0) !important;
-            opacity: 1 !important;
         }
 
         .btn-download:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 25px -5px rgba(102, 252, 241, 0.6);
+            background: #ffffff;
+            transform: translateY(-2px);
         }
 
         .btn-reset:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-3px);
-            color: var(--text-bright);
+            background: rgba(0, 0, 0, 0.8);
         }
 
-        .btn-download:active,
-        .btn-reset:active {
-            transform: translateY(1px);
-        }
-
-        .ambient-glow {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: var(--primary-color);
-            filter: blur(150px);
-            opacity: 0.15;
-            z-index: 1;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-
+        /* Custom scrollbar styling for log areas */
         .log-area::-webkit-scrollbar {
             width: 8px;
         }
 
         .log-area::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 4px;
+            background: #000;
         }
 
         .log-area::-webkit-scrollbar-thumb {
-            background: rgba(102, 252, 241, 0.2);
+            background: var(--surface-color);
             border-radius: 4px;
-        }
-
-        .log-area::-webkit-scrollbar-thumb:hover {
-            background: rgba(102, 252, 241, 0.4);
         }
 
         .bottom-ui-box {
@@ -315,48 +268,28 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(31, 40, 51, 0.6);
-            backdrop-filter: blur(12px);
+            background: var(--surface-color);
             padding: 12px 20px;
-            border-radius: 50px;
-            border: 1px solid rgba(102, 252, 241, 0.15);
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
             font-family: 'Outfit', sans-serif;
             z-index: 100;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .bottom-ui-box:hover {
-            background: rgba(31, 40, 51, 0.9);
-            border-color: var(--primary-color);
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 15px 35px -5px rgba(102, 252, 241, 0.25);
         }
 
         .credits {
             bottom: 24px;
             right: 24px;
-            color: var(--secondary-color);
+            color: var(--text-bright);
             font-weight: 600;
             font-size: 0.95rem;
             cursor: default;
         }
 
-        .credits:hover {
-            color: var(--text-bright);
-        }
-
         .credits-img {
             width: 36px;
             height: 36px;
-            border-radius: 6px;
+            border-radius: 4px;
             image-rendering: pixelated;
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .credits:hover .credits-img {
-            transform: scale(1.15) rotate(6deg);
         }
 
         .tabs-nav {
@@ -373,27 +306,26 @@
             font-size: 0.95rem;
             font-weight: 600;
             padding: 8px 16px;
-            border-radius: 30px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
         .tab-btn:hover {
             color: var(--text-bright);
-            background: rgba(102, 252, 241, 0.1);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .tab-btn.active {
             background: var(--primary-color);
-            color: var(--bg-color);
-            box-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
+            color: #0b0c10;
+            font-weight: 800;
         }
     </style>
 </head>
 
 <body>
-    <div class="ambient-glow"></div>
-
+    <!-- Map Patcher Panel -->
     <div class="container active" id="panel-patcher">
         <h1>Atlas Map Patcher</h1>
         <p class="subtitle">Instantly detect and fix corrupted region files (0-byte .mca errors) that crash Atlas
@@ -423,6 +355,7 @@
         </div>
     </div>
 
+    <!-- Promo Assets Converter Panel -->
     <div class="container" id="panel-converter">
         <h1>Promo Assets Converter</h1>
         <p class="subtitle">Bulk convert screenshots to <strong>1280x720 .jpg</strong> format for Atlas promotion
@@ -455,7 +388,7 @@
         </div>
     </div>
 
-    <!-- UI Buttons -->
+    <!-- Bottom Navigation & Credits -->
     <div class="bottom-ui-box tabs-nav">
         <button class="tab-btn active" data-target="panel-patcher">Map Patcher</button>
         <button class="tab-btn" data-target="panel-converter">Promo Converter</button>
@@ -467,284 +400,445 @@
     </div>
 
     <script>
+        // Tab switching logic - pretty straightforward
         var myTabs = document.querySelectorAll('.tab-btn');
         var myPanels = document.querySelectorAll('.container');
 
-        myTabs.forEach(function(t) {
-            t.addEventListener('click', (e) => {
-                myTabs.forEach(x => x.classList.remove('active'));
-                myPanels.forEach(p => p.classList.remove('active'));
-                t.classList.add('active');
+        myTabs.forEach(function (tabButton) {
+            tabButton.addEventListener('click', function(evt) {
+                // Remove active from all tabs and panels
+                myTabs.forEach(function(btn) {
+                    btn.classList.remove('active');
+                });
+                myPanels.forEach(function(panel) {
+                    panel.classList.remove('active');
+                });
                 
-                var targ = t.getAttribute('data-target');
-                document.getElementById(targ).classList.add('active');
+                // Add active to clicked tab
+                tabButton.classList.add('active');
+
+                // Show corresponding panel
+                var targetPanelId = tabButton.getAttribute('data-target');
+                var targetPanel = document.getElementById(targetPanelId);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                }
             });
         });
 
-        // custom logger
-        function makeLogger(id) {
-            var el = document.getElementById(id);
-            return function (msg, type) {
-                if(!type) type = 'normal';
+        // Logger factory - returns a function that logs to specific area
+        // This way I don't have to duplicate logging code
+        function makeLogger(logAreaId) {
+            var logElement = document.getElementById(logAreaId);
+            
+            return function writeLog(message, logType) {
+                if (!logType) {
+                    logType = 'normal';
+                }
+
+                var logEntry = document.createElement('div');
+                logEntry.className = "log-entry " + logType;
                 
-                var entry = document.createElement('div');
-                entry.className = "log-entry " + type;
-                entry.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
-                el.appendChild(entry);
-                el.scrollTop = el.scrollHeight; 
+                // Add timestamp to each log entry
+                var timestamp = new Date().toLocaleTimeString();
+                logEntry.textContent = "[" + timestamp + "] " + message;
+                
+                logElement.appendChild(logEntry);
+                
+                // Auto-scroll to bottom so newest logs are visible
+                logElement.scrollTop = logElement.scrollHeight;
             };
         }
 
-        // map patcher variables
-        var dz1 = document.getElementById('dropZonePatcher');
-        var inp1 = document.getElementById('fileInputPatcher');
-        var stat1 = document.getElementById('statusContainerPatcher');
-        var txt1 = document.getElementById('statusTextPatcher');
-        let prog1 = document.getElementById('progressBarPatcher');
-        var dl1 = document.getElementById('downloadBtnPatcher');
-        const rst1 = document.getElementById('resetBtnPatcher');
-        var log1 = makeLogger('logAreaPatcher');
+        /* ========================================
+           MAP PATCHER FUNCTIONALITY (yES)
+           ======================================== */
 
-        var finalZipBlob = null;
-        var ogName = "";
+        // Get all the DOM elements for patcher
+        var dropZonePatcher = document.getElementById('dropZonePatcher');
+        var fileInputPatcher = document.getElementById('fileInputPatcher');
+        var statusContainerPatcher = document.getElementById('statusContainerPatcher');
+        var statusTextPatcher = document.getElementById('statusTextPatcher');
+        var progressBarPatcher = document.getElementById('progressBarPatcher');
+        var downloadBtnPatcher = document.getElementById('downloadBtnPatcher');
+        var resetBtnPatcher = document.getElementById('resetBtnPatcher');
+        var logPatcher = makeLogger('logAreaPatcher');
 
-        rst1.addEventListener('click', function() {
-            dz1.style.display = 'block';
-            stat1.classList.remove('active');
-            dl1.classList.remove('visible');
-            rst1.classList.remove('visible');
-            inp1.value = '';
-            finalZipBlob = null;
+        // Store the processed zip in memory
+        var patchedZipBlob = null;
+        var originalFileName = "";
+
+        // Reset button handler
+        resetBtnPatcher.addEventListener('click', function () {
+            dropZonePatcher.style.display = 'block';
+            statusContainerPatcher.classList.remove('active');
+            downloadBtnPatcher.classList.remove('visible');
+            resetBtnPatcher.classList.remove('visible');
+            fileInputPatcher.value = '';
+            patchedZipBlob = null;
+            document.getElementById('logAreaPatcher').innerHTML = '';
         });
 
-        function initDrop(dz, inp, cb) {
-            dz.addEventListener('click', () => inp.click());
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); }, false));
-            ['dragenter', 'dragover'].forEach(evt => dz.addEventListener(evt, () => dz.classList.add('dragover'), false));
-            ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, () => dz.classList.remove('dragover'), false));
-            dz.addEventListener('drop', function(e) { cb(e.dataTransfer.files) });
-            inp.addEventListener('change', function () { cb(this.files); });
+        // Generic drag-and-drop initialization
+        // Takes drop zone, file input, and callback for when files are selected
+        function setupDragAndDrop(dropZone, fileInput, onFilesSelected) {
+            // Click on drop zone = click hidden file input
+            dropZone.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // Prevent default drag behaviors
+            var dragEvents = ['dragenter', 'dragover', 'dragleave', 'drop'];
+            dragEvents.forEach(function(eventName) {
+                dropZone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            // Add visual feedback on drag
+            ['dragenter', 'dragover'].forEach(function(eventName) {
+                dropZone.addEventListener(eventName, function() {
+                    dropZone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(function(eventName) {
+                dropZone.addEventListener(eventName, function() {
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+
+            // Handle file drop
+            dropZone.addEventListener('drop', function (e) {
+                var droppedFiles = e.dataTransfer.files;
+                onFilesSelected(droppedFiles);
+            });
+
+            // Handle file input change (when user browses files)
+            fileInput.addEventListener('change', function () {
+                var selectedFiles = this.files;
+                onFilesSelected(selectedFiles);
+            });
         }
 
-        initDrop(dz1, inp1, (f) => { if (f.length > 0) processMapArchive(f[0]); });
+        // Initialize patcher drag-and-drop
+        setupDragAndDrop(dropZonePatcher, fileInputPatcher, function(files) {
+            if (files.length > 0) {
+                processMapArchive(files[0]);
+            }
+        });
 
-        async function processMapArchive(file) {
-            if (!file.name.endsWith('.zip')) {
+        // Main map processing function
+        async function processMapArchive(uploadedFile) {
+            // Basic validation
+            if (!uploadedFile.name.endsWith('.zip')) {
                 alert("Upload a .zip folder containing the Minecraft world.");
                 return;
             }
-            
-            ogName = file.name;
-            finalZipBlob = null;
-            dl1.classList.remove('visible');
-            rst1.classList.remove('visible');
+
+            // Reset state
+            originalFileName = uploadedFile.name;
+            patchedZipBlob = null;
+            downloadBtnPatcher.classList.remove('visible');
+            resetBtnPatcher.classList.remove('visible');
             document.getElementById('logAreaPatcher').innerHTML = '';
 
-            dz1.style.display = 'none';
-            stat1.classList.add('active');
-            prog1.style.width = '0%';
-            txt1.textContent = 'Reading archive...';
-            
-            // console.log("loaded file", file);
-            log1("Loaded: " + file.name + " (" + (file.size / 1024 / 1024).toFixed(2) + " MB)");
+            // Show status UI, hide upload area
+            dropZonePatcher.style.display = 'none';
+            statusContainerPatcher.classList.add('active');
+            progressBarPatcher.style.width = '0%';
+            statusTextPatcher.textContent = 'Reading archive...';
+
+            var fileSizeInMB = (uploadedFile.size / 1024 / 1024).toFixed(2);
+            logPatcher("Loaded: " + uploadedFile.name + " (" + fileSizeInMB + " MB)");
 
             try {
-                let jszip = new JSZip();
-                let loaded = await jszip.loadAsync(file);
-                log1('Archive parsed successfully.', 'success');
+                // Load the zip file using JSZip
+                var zipLoader = new JSZip();
+                var loadedZip = await zipLoader.loadAsync(uploadedFile);
+                logPatcher('Archive parsed successfully.', 'success');
 
-                var newZ = new JSZip();
-                let fileNames = Object.keys(loaded.files);
-                let total = fileNames.length;
-                let rmvd = 0;
-                let done = 0;
+                // Create new zip for patched output
+                var outputZip = new JSZip();
+                var allFileNames = Object.keys(loadedZip.files);
+                var totalFiles = allFileNames.length;
+                var removedCount = 0;
+                var processedCount = 0;
 
-                txt1.textContent = 'Scanning for corrupted MCA files...';
+                statusTextPatcher.textContent = 'Scanning for corrupted MCA files...';
 
-                for (let i = 0; i < fileNames.length; i++) {
-                    let path = fileNames[i];
-                    let entry = loaded.files[path];
+                // Process each file in the archive
+                for (var i = 0; i < allFileNames.length; i++) {
+                    var filePath = allFileNames[i];
+                    var zipEntry = loadedZip.files[filePath];
 
-                    if (entry.dir) {
-                        newZ.folder(path);
-                        done++;
+                    // If it's a directory, just recreate it
+                    if (zipEntry.dir) {
+                        outputZip.folder(filePath);
+                        processedCount++;
                         continue;
                     }
 
-                    // read the file binary
-                    let data = await entry.async("uint8array");
+                    // Read file as binary data
+                    var fileData = await zipEntry.async("uint8array");
 
-                    if (path.endsWith('.mca') && data.length < 8192) {
-                        rmvd++;
-                        log1("Removed Corrupt Region: " + path + " (Size: " + data.length + " bytes)", 'removed');
+                    // Check if this is a corrupted MCA file
+                    // MCA files under 8KB are usually corrupted (normal ones are much larger)
+                    var isCorruptedMCA = filePath.endsWith('.mca') && fileData.length < 8192;
+                    
+                    if (isCorruptedMCA) {
+                        removedCount++;
+                        logPatcher("Removed Corrupt Region: " + filePath + " (Size: " + fileData.length + " bytes)", 'removed');
                     } else {
-                        newZ.file(path, data);
+                        // File is fine, add it to output
+                        outputZip.file(filePath, fileData);
                     }
 
-                    done++;
-                    if (done % 50 === 0 || done === total) {
-                        prog1.style.width = Math.floor((done / total) * 50) + "%";
+                    processedCount++;
+                    
+                    // Update progress bar periodically (not every file to avoid slowdown)
+                    if (processedCount % 50 === 0 || processedCount === totalFiles) {
+                        var scanProgress = Math.floor((processedCount / totalFiles) * 50);
+                        progressBarPatcher.style.width = scanProgress + "%";
                     }
                 }
 
-                log1("Scan complete. Removed " + rmvd + " corrupted region files.", 'success');
-                txt1.textContent = 'Repacking fixed archive...';
+                logPatcher("Scan complete. Removed " + removedCount + " corrupted region files.", 'success');
+                statusTextPatcher.textContent = 'Repacking fixed archive...';
 
-                finalZipBlob = await newZ.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
-                    function(meta) { prog1.style.width = (50 + (meta.percent / 2)) + "%"; });
+                // Generate final zip blob with compression
+                patchedZipBlob = await outputZip.generateAsync(
+                    {
+                        type: "blob",
+                        compression: "DEFLATE",
+                        compressionOptions: { level: 6 }
+                    },
+                    function updateProgress(metadata) {
+                        // Progress is 50% scan + 50% compression
+                        var compressionProgress = 50 + (metadata.percent / 2);
+                        progressBarPatcher.style.width = compressionProgress + "%";
+                    }
+                );
 
-                txt1.textContent = 'Patching Complete!';
-                log1('Map successfully patched and repackaged.', 'success');
-                dl1.classList.add('visible');
-                rst1.classList.add('visible');
+                // All done!
+                statusTextPatcher.textContent = 'Patching Complete!';
+                logPatcher('Map successfully patched and repackaged.', 'success');
+                downloadBtnPatcher.classList.add('visible');
+                resetBtnPatcher.classList.add('visible');
 
-            } catch (err) {
-                txt1.textContent = 'Error processing map!';
-                log1("Error: " + err.message, 'error');
-                console.error(err);
-                setTimeout(() => {
-                    dz1.style.display = 'block';
-                    stat1.classList.remove('active');
-                    rst1.classList.remove('visible');
+            } catch (error) {
+                // Something went wrong
+                statusTextPatcher.textContent = 'Error processing map!';
+                logPatcher("Error: " + error.message, 'error');
+                console.error("Full error details:", error);
+                
+                // Reset UI after a delay
+                setTimeout(function() {
+                    dropZonePatcher.style.display = 'block';
+                    statusContainerPatcher.classList.remove('active');
+                    resetBtnPatcher.classList.remove('visible');
                 }, 3000);
             }
         }
 
-        dl1.addEventListener('click', () => {
-            if (!finalZipBlob) return;
-            downloadBlob(finalZipBlob, ogName.replace('.zip', '') + ' - Patched.zip');
+        // Download button handler for patcher
+        downloadBtnPatcher.addEventListener('click', function() {
+            if (!patchedZipBlob) {
+                return;
+            }
+            
+            var outputFilename = originalFileName.replace('.zip', '') + ' - Patched.zip';
+            downloadBlobAsFile(patchedZipBlob, outputFilename);
         });
 
-        // download util
-        function downloadBlob(b, fName) {
-            let u = URL.createObjectURL(b);
-            let a = document.createElement('a');
-            a.href = u;
-            a.download = fName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(u);
+        // Utility function to download a blob as a file
+        function downloadBlobAsFile(blobData, filename) {
+            var blobUrl = URL.createObjectURL(blobData);
+            var downloadLink = document.createElement('a');
+            downloadLink.href = blobUrl;
+            downloadLink.download = filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // Clean up the blob URL after download
+            URL.revokeObjectURL(blobUrl);
         }
 
-        /* image converter stuff */
-        var dz2 = document.getElementById('dropZoneConverter');
-        var inp2 = document.getElementById('fileInputConverter');
-        var stat2 = document.getElementById('statusContainerConverter');
-        var txt2 = document.getElementById('statusTextConverter');
-        var prog2 = document.getElementById('progressBarConverter');
-        var dl2 = document.getElementById('downloadBtnConverter');
-        var rst2 = document.getElementById('resetBtnConverter');
-        var log2 = makeLogger('logAreaConverter');
+        /* ========================================
+           PROMO ASSETS CONVERTER
+           ======================================== */
 
-        var promoBlob = null;
+        var dropZoneConverter = document.getElementById('dropZoneConverter');
+        var fileInputConverter = document.getElementById('fileInputConverter');
+        var statusContainerConverter = document.getElementById('statusContainerConverter');
+        var statusTextConverter = document.getElementById('statusTextConverter');
+        var progressBarConverter = document.getElementById('progressBarConverter');
+        var downloadBtnConverter = document.getElementById('downloadBtnConverter');
+        var resetBtnConverter = document.getElementById('resetBtnConverter');
+        var logConverter = makeLogger('logAreaConverter');
 
-        rst2.addEventListener('click', function() {
-            dz2.style.display = 'block';
-            stat2.classList.remove('active');
-            dl2.classList.remove('visible');
-            rst2.classList.remove('visible');
-            inp2.value = '';
-            promoBlob = null;
+        var convertedPromoZip = null;
+
+        resetBtnConverter.addEventListener('click', function () {
+            dropZoneConverter.style.display = 'block';
+            statusContainerConverter.classList.remove('active');
+            downloadBtnConverter.classList.remove('visible');
+            resetBtnConverter.classList.remove('visible');
+            fileInputConverter.value = '';
+            convertedPromoZip = null;
+            document.getElementById('logAreaConverter').innerHTML = '';
         });
 
-        initDrop(dz2, inp2, (files) => { if (files.length > 0) doPromoConversion(files); });
+        setupDragAndDrop(dropZoneConverter, fileInputConverter, function(files) {
+            if (files.length > 0) {
+                convertPromoImages(files);
+            }
+        });
 
-        async function doPromoConversion(files) {
-            var vFiles = Array.from(files).filter(f => f.type.indexOf('image/') === 0);
-            if (vFiles.length === 0) {
+        async function convertPromoImages(fileList) {
+            // Filter to only image files
+            var imageFiles = [];
+            for (var i = 0; i < fileList.length; i++) {
+                var file = fileList[i];
+                if (file.type.indexOf('image/') === 0) {
+                    imageFiles.push(file);
+                }
+            }
+
+            if (imageFiles.length === 0) {
                 alert("Please upload valid image files (png/jpg).");
                 return;
             }
 
-            promoBlob = null;
-            dl2.classList.remove('visible');
-            rst2.classList.remove('visible');
+            // Reset state
+            convertedPromoZip = null;
+            downloadBtnConverter.classList.remove('visible');
+            resetBtnConverter.classList.remove('visible');
             document.getElementById('logAreaConverter').innerHTML = '';
 
-            dz2.style.display = 'none';
-            stat2.classList.add('active');
-            prog2.style.width = '0%';
-            txt2.textContent = "Converting " + vFiles.length + " images...";
-            log2("Loaded " + vFiles.length + " images for bulk conversion to 1280x720 .jpg.");
+            dropZoneConverter.style.display = 'none';
+            statusContainerConverter.classList.add('active');
+            progressBarConverter.style.width = '0%';
+            statusTextConverter.textContent = "Converting " + imageFiles.length + " images...";
+            logConverter("Loaded " + imageFiles.length + " images for bulk conversion to 1280x720 .jpg.");
 
             try {
-                var z = new JSZip();
+                var promoZip = new JSZip();
 
-                for (let i = 0; i < vFiles.length; i++) {
-                    let fileObj = vFiles[i];
-                    log2("Resizing: " + fileObj.name + "...");
+                // Process each image
+                for (var idx = 0; idx < imageFiles.length; idx++) {
+                    var imageFile = imageFiles[idx];
+                    logConverter("Resizing: " + imageFile.name + "...");
+
+                    var convertedBlob = await resizeImageToPromoFormat(imageFile);
                     
-                    let b = await convertOneImage(fileObj);
-                    let n = fileObj.name.replace(/\.[^/.]+$/, "") + ".jpg";
-                    z.file(n, b);
+                    // Change extension to .jpg
+                    var newFilename = imageFile.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                    promoZip.file(newFilename, convertedBlob);
 
-                    prog2.style.width = (((i + 1) / vFiles.length) * 50) + "%";
+                    // Update progress (first 50% is conversion)
+                    var conversionProgress = ((idx + 1) / imageFiles.length) * 50;
+                    progressBarConverter.style.width = conversionProgress + "%";
                 }
 
-                log2('All images rendered successfully to memory.', 'success');
-                txt2.textContent = 'Zipping Promotional Assets...';
+                logConverter('All images rendered successfully to memory.', 'success');
+                statusTextConverter.textContent = 'Zipping Promotional Assets...';
 
-                promoBlob = await z.generateAsync({ type: "blob" }, (m) => {
-                    prog2.style.width = (50 + (m.percent / 2)) + "%";
-                });
+                // Create final zip
+                convertedPromoZip = await promoZip.generateAsync(
+                    { type: "blob" },
+                    function(meta) {
+                        var zipProgress = 50 + (meta.percent / 2);
+                        progressBarConverter.style.width = zipProgress + "%";
+                    }
+                );
 
-                txt2.textContent = 'Conversion Complete!';
-                log2('Assets packaged into Atlas_Promo.zip.', 'success');
-                dl2.classList.add('visible');
-                rst2.classList.add('visible');
+                statusTextConverter.textContent = 'Conversion Complete!';
+                logConverter('Assets packaged into Atlas_Promo.zip.', 'success');
+                downloadBtnConverter.classList.add('visible');
+                resetBtnConverter.classList.add('visible');
 
-            } catch (e) {
-                txt2.textContent = 'Error during conversion!';
-                log2("Error: " + e.message, 'error');
-                setTimeout(() => {
-                    dz2.style.display = 'block';
-                    stat2.classList.remove('active');
-                    rst2.classList.remove('visible');
+            } catch (err) {
+                statusTextConverter.textContent = 'Error during conversion!';
+                logConverter("Error: " + err.message, 'error');
+                console.error("Conversion error:", err);
+                
+                setTimeout(function() {
+                    dropZoneConverter.style.display = 'block';
+                    statusContainerConverter.classList.remove('active');
+                    resetBtnConverter.classList.remove('visible');
                 }, 3000);
             }
         }
 
-        function convertOneImage(f) {
-            return new Promise((res, rej) => {
-                let url = URL.createObjectURL(f);
-                let img = new Image();
-                img.onload = function() {
-                    URL.revokeObjectURL(url);
-                    let cvs = document.createElement('canvas');
-                    cvs.width = 1280;
-                    cvs.height = 720;
-                    let ctx = cvs.getContext('2d');
+        // Resize a single image to 1280x720 with smart cropping
+        function resizeImageToPromoFormat(imageFile) {
+            return new Promise(function(resolve, reject) {
+                var imageUrl = URL.createObjectURL(imageFile);
+                var img = new Image();
+                
+                img.onload = function () {
+                    URL.revokeObjectURL(imageUrl);
+                    
+                    // Create canvas for rendering
+                    var canvas = document.createElement('canvas');
+                    canvas.width = 1280;
+                    canvas.height = 720;
+                    var ctx = canvas.getContext('2d');
 
-                    let r1 = img.width / img.height;
-                    let r2 = 1280 / 720;
-                    let dw, dh, ox = 0, oy = 0;
+                    // Calculate aspect ratios
+                    var sourceRatio = img.width / img.height;
+                    var targetRatio = 1280 / 720;
+                    
+                    var drawWidth, drawHeight;
+                    var offsetX = 0;
+                    var offsetY = 0;
 
-                    // calc crop
-                    if (r1 > r2) {
-                        dh = 720;
-                        dw = img.width * (720 / img.height);
-                        ox = (1280 - dw) / 2;
+                    // Smart crop: cover the entire canvas while maintaining aspect ratio
+                    if (sourceRatio > targetRatio) {
+                        // Image is wider - fit to height
+                        drawHeight = 720;
+                        drawWidth = img.width * (720 / img.height);
+                        offsetX = (1280 - drawWidth) / 2;
                     } else {
-                        dw = 1280;
-                        dh = img.height * (1280 / img.width);
-                        oy = (720 - dh) / 2;
+                        // Image is taller - fit to width
+                        drawWidth = 1280;
+                        drawHeight = img.height * (1280 / img.width);
+                        offsetY = (720 - drawHeight) / 2;
                     }
 
+                    // Enable high quality rendering
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, ox, oy, dw, dh);
+                    
+                    // Draw the image
+                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 
-                    cvs.toBlob(function(b) { res(b); }, "image/jpeg", 0.95);
+                    // Convert canvas to blob
+                    canvas.toBlob(
+                        function (resultBlob) {
+                            resolve(resultBlob);
+                        },
+                        "image/jpeg",
+                        0.95  // High quality JPEG
+                    );
                 };
-                img.onerror = rej;
-                img.src = url;
+                
+                img.onerror = function(err) {
+                    reject(err);
+                };
+                
+                img.src = imageUrl;
             });
         }
 
-        dl2.addEventListener('click', function() {
-            if (!promoBlob) return;
-            downloadBlob(promoBlob, 'Atlas_Promo_Assets_1280x720.zip');
+        downloadBtnConverter.addEventListener('click', function () {
+            if (!convertedPromoZip) {
+                return;
+            }
+            downloadBlobAsFile(convertedPromoZip, 'Atlas_Promo_Assets_1280x720.zip');
         });
     </script>
 </body>
