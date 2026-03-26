@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://api.mcheads.org/head/BugTracker_/96" alt="Coded By BugTracker_" width="96" height="96" />
+<img width="220" height="229" alt="images__1_-removebg-preview" src="https://github.com/user-attachments/assets/a8b508d1-07e2-47a2-9f87-fbf445fd525d" />
   <h1>Atlas Tool Suite</h1>
   <p><strong>A zero-dependency, local-first Minecraft world parser that fixes Atlas chunk errors and bulk-formats promotional imagery.</strong></p>
 </div>
