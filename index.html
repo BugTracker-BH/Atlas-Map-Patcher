@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas Tool Suite</title>
+    <!-- load jszip -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
@@ -36,9 +37,7 @@
             align-items: center;
             justify-content: center;
             overflow-x: hidden;
-            background-image:
-                radial-gradient(circle at 15% 50%, rgba(69, 162, 158, 0.08), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(102, 252, 241, 0.05), transparent 25%);
+            background-image: radial-gradient(circle at 15% 50%, rgba(69, 162, 158, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(102, 252, 241, 0.05), transparent 25%);
         }
 
         .container {
@@ -311,7 +310,6 @@
             background: rgba(102, 252, 241, 0.4);
         }
 
-        /* Floating UI Elements */
         .bottom-ui-box {
             position: fixed;
             display: flex;
@@ -396,7 +394,6 @@
 <body>
     <div class="ambient-glow"></div>
 
-    <!-- Map Patcher Panel -->
     <div class="container active" id="panel-patcher">
         <h1>Atlas Map Patcher</h1>
         <p class="subtitle">Instantly detect and fix corrupted region files (0-byte .mca errors) that crash Atlas
@@ -426,7 +423,6 @@
         </div>
     </div>
 
-    <!-- Promo Assets Converter Panel -->
     <div class="container" id="panel-converter">
         <h1>Promo Assets Converter</h1>
         <p class="subtitle">Bulk convert screenshots to <strong>1280x720 .jpg</strong> format for Atlas promotion
@@ -459,280 +455,296 @@
         </div>
     </div>
 
-    <!-- Tabs Nav (Bottom Left) -->
+    <!-- UI Buttons -->
     <div class="bottom-ui-box tabs-nav">
         <button class="tab-btn active" data-target="panel-patcher">Map Patcher</button>
         <button class="tab-btn" data-target="panel-converter">Promo Converter</button>
     </div>
 
-    <!-- Credits (Bottom Right) -->
     <div class="bottom-ui-box credits">
         <span>Coded By BugTracker_</span>
         <img src="https://api.mcheads.org/head/BugTracker_/96" alt="BugTracker_" class="credits-img">
     </div>
 
     <script>
-        // Tab Logic
-        const tabs = document.querySelectorAll('.tab-btn');
-        const panels = document.querySelectorAll('.container');
+        var myTabs = document.querySelectorAll('.tab-btn');
+        var myPanels = document.querySelectorAll('.container');
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                panels.forEach(p => p.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(tab.getAttribute('data-target')).classList.add('active');
+        myTabs.forEach(function(t) {
+            t.addEventListener('click', (e) => {
+                myTabs.forEach(x => x.classList.remove('active'));
+                myPanels.forEach(p => p.classList.remove('active'));
+                t.classList.add('active');
+                
+                var targ = t.getAttribute('data-target');
+                document.getElementById(targ).classList.add('active');
             });
         });
 
-        function createLogger(elementId) {
-            const el = document.getElementById(elementId);
-            return function (message, type = 'normal') {
-                const entry = document.createElement('div');
-                entry.className = `log-entry ${type}`;
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        // custom logger
+        function makeLogger(id) {
+            var el = document.getElementById(id);
+            return function (msg, type) {
+                if(!type) type = 'normal';
+                
+                var entry = document.createElement('div');
+                entry.className = "log-entry " + type;
+                entry.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg;
                 el.appendChild(entry);
-                el.scrollTop = el.scrollHeight;
+                el.scrollTop = el.scrollHeight; 
             };
         }
 
-        /* ---------------- MAP PATCHER LOGIC ---------------- */
-        const dropZonePatcher = document.getElementById('dropZonePatcher');
-        const fileInputPatcher = document.getElementById('fileInputPatcher');
-        const statusContainerPatcher = document.getElementById('statusContainerPatcher');
-        const statusTextPatcher = document.getElementById('statusTextPatcher');
-        const progressBarPatcher = document.getElementById('progressBarPatcher');
-        const downloadBtnPatcher = document.getElementById('downloadBtnPatcher');
-        const resetBtnPatcher = document.getElementById('resetBtnPatcher');
-        const logPatcher = createLogger('logAreaPatcher');
+        // map patcher variables
+        var dz1 = document.getElementById('dropZonePatcher');
+        var inp1 = document.getElementById('fileInputPatcher');
+        var stat1 = document.getElementById('statusContainerPatcher');
+        var txt1 = document.getElementById('statusTextPatcher');
+        let prog1 = document.getElementById('progressBarPatcher');
+        var dl1 = document.getElementById('downloadBtnPatcher');
+        const rst1 = document.getElementById('resetBtnPatcher');
+        var log1 = makeLogger('logAreaPatcher');
 
-        let patchedZipBlob = null;
-        let originalFilename = "";
+        var finalZipBlob = null;
+        var ogName = "";
 
-        resetBtnPatcher.addEventListener('click', () => {
-            dropZonePatcher.style.display = 'block';
-            statusContainerPatcher.classList.remove('active');
-            downloadBtnPatcher.classList.remove('visible');
-            resetBtnPatcher.classList.remove('visible');
-            fileInputPatcher.value = '';
-            patchedZipBlob = null;
+        rst1.addEventListener('click', function() {
+            dz1.style.display = 'block';
+            stat1.classList.remove('active');
+            dl1.classList.remove('visible');
+            rst1.classList.remove('visible');
+            inp1.value = '';
+            finalZipBlob = null;
         });
 
-        function setupDropZone(dropZone, fileInput, handler) {
-            dropZone.addEventListener('click', () => fileInput.click());
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false));
-            ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false));
-            ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false));
-            dropZone.addEventListener('drop', (e) => handler(e.dataTransfer.files));
-            fileInput.addEventListener('change', function () { handler(this.files); });
+        function initDrop(dz, inp, cb) {
+            dz.addEventListener('click', () => inp.click());
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); }, false));
+            ['dragenter', 'dragover'].forEach(evt => dz.addEventListener(evt, () => dz.classList.add('dragover'), false));
+            ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, () => dz.classList.remove('dragover'), false));
+            dz.addEventListener('drop', function(e) { cb(e.dataTransfer.files) });
+            inp.addEventListener('change', function () { cb(this.files); });
         }
 
-        setupDropZone(dropZonePatcher, fileInputPatcher, (files) => { if (files.length > 0) handlePatcherFile(files[0]); });
+        initDrop(dz1, inp1, (f) => { if (f.length > 0) processMapArchive(f[0]); });
 
-        async function handlePatcherFile(file) {
-            if (!file.name.endsWith('.zip')) return alert("Upload a .zip folder containing the Minecraft world.");
-            originalFilename = file.name;
-            patchedZipBlob = null;
-            downloadBtnPatcher.classList.remove('visible');
-            resetBtnPatcher.classList.remove('visible');
+        async function processMapArchive(file) {
+            if (!file.name.endsWith('.zip')) {
+                alert("Upload a .zip folder containing the Minecraft world.");
+                return;
+            }
+            
+            ogName = file.name;
+            finalZipBlob = null;
+            dl1.classList.remove('visible');
+            rst1.classList.remove('visible');
             document.getElementById('logAreaPatcher').innerHTML = '';
 
-            dropZonePatcher.style.display = 'none';
-            statusContainerPatcher.classList.add('active');
-            progressBarPatcher.style.width = '0%';
-            statusTextPatcher.textContent = 'Reading archive...';
-            logPatcher(`Loaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            dz1.style.display = 'none';
+            stat1.classList.add('active');
+            prog1.style.width = '0%';
+            txt1.textContent = 'Reading archive...';
+            
+            // console.log("loaded file", file);
+            log1("Loaded: " + file.name + " (" + (file.size / 1024 / 1024).toFixed(2) + " MB)");
 
             try {
-                const zip = new JSZip();
-                const loadedZip = await zip.loadAsync(file);
-                logPatcher('Archive parsed successfully.', 'success');
+                let jszip = new JSZip();
+                let loaded = await jszip.loadAsync(file);
+                log1('Archive parsed successfully.', 'success');
 
-                const newZip = new JSZip();
-                const files = Object.keys(loadedZip.files);
-                const totalFiles = files.length;
-                let removedCount = 0;
-                let processedCount = 0;
+                var newZ = new JSZip();
+                let fileNames = Object.keys(loaded.files);
+                let total = fileNames.length;
+                let rmvd = 0;
+                let done = 0;
 
-                statusTextPatcher.textContent = 'Scanning for corrupted MCA files...';
+                txt1.textContent = 'Scanning for corrupted MCA files...';
 
-                for (let i = 0; i < files.length; i++) {
-                    const relativePath = files[i];
-                    const zipEntry = loadedZip.files[relativePath];
+                for (let i = 0; i < fileNames.length; i++) {
+                    let path = fileNames[i];
+                    let entry = loaded.files[path];
 
-                    if (zipEntry.dir) {
-                        newZip.folder(relativePath);
-                        processedCount++;
+                    if (entry.dir) {
+                        newZ.folder(path);
+                        done++;
                         continue;
                     }
 
-                    const fileData = await zipEntry.async("uint8array");
+                    // read the file binary
+                    let data = await entry.async("uint8array");
 
-                    if (relativePath.endsWith('.mca') && fileData.length < 8192) {
-                        removedCount++;
-                        logPatcher(`Removed Corrupt Region: ${relativePath} (Size: ${fileData.length} bytes)`, 'removed');
+                    if (path.endsWith('.mca') && data.length < 8192) {
+                        rmvd++;
+                        log1("Removed Corrupt Region: " + path + " (Size: " + data.length + " bytes)", 'removed');
                     } else {
-                        newZip.file(relativePath, fileData);
+                        newZ.file(path, data);
                     }
 
-                    processedCount++;
-                    if (processedCount % 50 === 0 || processedCount === totalFiles) {
-                        progressBarPatcher.style.width = `${(processedCount / totalFiles) * 50}%`;
+                    done++;
+                    if (done % 50 === 0 || done === total) {
+                        prog1.style.width = Math.floor((done / total) * 50) + "%";
                     }
                 }
 
-                logPatcher(`Scan complete. Removed ${removedCount} corrupted region files.`, 'success');
-                statusTextPatcher.textContent = 'Repacking fixed archive...';
+                log1("Scan complete. Removed " + rmvd + " corrupted region files.", 'success');
+                txt1.textContent = 'Repacking fixed archive...';
 
-                patchedZipBlob = await newZip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
-                    (metadata) => { progressBarPatcher.style.width = `${50 + (metadata.percent / 2)}%`; });
+                finalZipBlob = await newZ.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+                    function(meta) { prog1.style.width = (50 + (meta.percent / 2)) + "%"; });
 
-                statusTextPatcher.textContent = 'Patching Complete!';
-                logPatcher('Map successfully patched and repackaged.', 'success');
-                downloadBtnPatcher.classList.add('visible');
-                resetBtnPatcher.classList.add('visible');
+                txt1.textContent = 'Patching Complete!';
+                log1('Map successfully patched and repackaged.', 'success');
+                dl1.classList.add('visible');
+                rst1.classList.add('visible');
 
-            } catch (error) {
-                statusTextPatcher.textContent = 'Error processing map!';
-                logPatcher(`Error: ${error.message}`, 'error');
+            } catch (err) {
+                txt1.textContent = 'Error processing map!';
+                log1("Error: " + err.message, 'error');
+                console.error(err);
                 setTimeout(() => {
-                    dropZonePatcher.style.display = 'block';
-                    statusContainerPatcher.classList.remove('active');
-                    resetBtnPatcher.classList.remove('visible');
+                    dz1.style.display = 'block';
+                    stat1.classList.remove('active');
+                    rst1.classList.remove('visible');
                 }, 3000);
             }
         }
 
-        downloadBtnPatcher.addEventListener('click', () => {
-            if (!patchedZipBlob) return;
-            triggerDownload(patchedZipBlob, originalFilename.replace('.zip', '') + ' - Patched.zip');
+        dl1.addEventListener('click', () => {
+            if (!finalZipBlob) return;
+            downloadBlob(finalZipBlob, ogName.replace('.zip', '') + ' - Patched.zip');
         });
 
-        function triggerDownload(blob, filename) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
+        // download util
+        function downloadBlob(b, fName) {
+            let u = URL.createObjectURL(b);
+            let a = document.createElement('a');
+            a.href = u;
+            a.download = fName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(u);
         }
 
-        /* ---------------- PROMO CONVERTER LOGIC ---------------- */
-        const dropZoneConverter = document.getElementById('dropZoneConverter');
-        const fileInputConverter = document.getElementById('fileInputConverter');
-        const statusContainerConverter = document.getElementById('statusContainerConverter');
-        const statusTextConverter = document.getElementById('statusTextConverter');
-        const progressBarConverter = document.getElementById('progressBarConverter');
-        const downloadBtnConverter = document.getElementById('downloadBtnConverter');
-        const resetBtnConverter = document.getElementById('resetBtnConverter');
-        const logConverter = createLogger('logAreaConverter');
+        /* image converter stuff */
+        var dz2 = document.getElementById('dropZoneConverter');
+        var inp2 = document.getElementById('fileInputConverter');
+        var stat2 = document.getElementById('statusContainerConverter');
+        var txt2 = document.getElementById('statusTextConverter');
+        var prog2 = document.getElementById('progressBarConverter');
+        var dl2 = document.getElementById('downloadBtnConverter');
+        var rst2 = document.getElementById('resetBtnConverter');
+        var log2 = makeLogger('logAreaConverter');
 
-        let convertedZipBlob = null;
+        var promoBlob = null;
 
-        resetBtnConverter.addEventListener('click', () => {
-            dropZoneConverter.style.display = 'block';
-            statusContainerConverter.classList.remove('active');
-            downloadBtnConverter.classList.remove('visible');
-            resetBtnConverter.classList.remove('visible');
-            fileInputConverter.value = '';
-            convertedZipBlob = null;
+        rst2.addEventListener('click', function() {
+            dz2.style.display = 'block';
+            stat2.classList.remove('active');
+            dl2.classList.remove('visible');
+            rst2.classList.remove('visible');
+            inp2.value = '';
+            promoBlob = null;
         });
 
-        setupDropZone(dropZoneConverter, fileInputConverter, (files) => { if (files.length > 0) handleConverterFiles(files); });
+        initDrop(dz2, inp2, (files) => { if (files.length > 0) doPromoConversion(files); });
 
-        async function handleConverterFiles(files) {
-            const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-            if (validFiles.length === 0) return alert("Please upload valid image files (png/jpg).");
+        async function doPromoConversion(files) {
+            var vFiles = Array.from(files).filter(f => f.type.indexOf('image/') === 0);
+            if (vFiles.length === 0) {
+                alert("Please upload valid image files (png/jpg).");
+                return;
+            }
 
-            convertedZipBlob = null;
-            downloadBtnConverter.classList.remove('visible');
-            resetBtnConverter.classList.remove('visible');
+            promoBlob = null;
+            dl2.classList.remove('visible');
+            rst2.classList.remove('visible');
             document.getElementById('logAreaConverter').innerHTML = '';
 
-            dropZoneConverter.style.display = 'none';
-            statusContainerConverter.classList.add('active');
-            progressBarConverter.style.width = '0%';
-            statusTextConverter.textContent = `Converting ${validFiles.length} images...`;
-            logConverter(`Loaded ${validFiles.length} images for bulk conversion to 1280x720 .jpg.`);
+            dz2.style.display = 'none';
+            stat2.classList.add('active');
+            prog2.style.width = '0%';
+            txt2.textContent = "Converting " + vFiles.length + " images...";
+            log2("Loaded " + vFiles.length + " images for bulk conversion to 1280x720 .jpg.");
 
             try {
-                const zip = new JSZip();
+                var z = new JSZip();
 
-                for (let i = 0; i < validFiles.length; i++) {
-                    const file = validFiles[i];
-                    logConverter(`Resizing: ${file.name}...`);
+                for (let i = 0; i < vFiles.length; i++) {
+                    let fileObj = vFiles[i];
+                    log2("Resizing: " + fileObj.name + "...");
+                    
+                    let b = await convertOneImage(fileObj);
+                    let n = fileObj.name.replace(/\.[^/.]+$/, "") + ".jpg";
+                    z.file(n, b);
 
-                    const blob = await resizeImageTo1280x720(file);
-                    const safeName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
-                    zip.file(safeName, blob);
-
-                    progressBarConverter.style.width = `${((i + 1) / validFiles.length) * 50}%`;
+                    prog2.style.width = (((i + 1) / vFiles.length) * 50) + "%";
                 }
 
-                logConverter('All images rendered successfully to memory.', 'success');
-                statusTextConverter.textContent = 'Zipping Promotional Assets...';
+                log2('All images rendered successfully to memory.', 'success');
+                txt2.textContent = 'Zipping Promotional Assets...';
 
-                convertedZipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
-                    progressBarConverter.style.width = `${50 + (metadata.percent / 2)}%`;
+                promoBlob = await z.generateAsync({ type: "blob" }, (m) => {
+                    prog2.style.width = (50 + (m.percent / 2)) + "%";
                 });
 
-                statusTextConverter.textContent = 'Conversion Complete!';
-                logConverter('Assets packaged into Atlas_Promo.zip.', 'success');
-                downloadBtnConverter.classList.add('visible');
-                resetBtnConverter.classList.add('visible');
+                txt2.textContent = 'Conversion Complete!';
+                log2('Assets packaged into Atlas_Promo.zip.', 'success');
+                dl2.classList.add('visible');
+                rst2.classList.add('visible');
 
-            } catch (error) {
-                statusTextConverter.textContent = 'Error during conversion!';
-                logConverter(`Error: ${error.message}`, 'error');
+            } catch (e) {
+                txt2.textContent = 'Error during conversion!';
+                log2("Error: " + e.message, 'error');
                 setTimeout(() => {
-                    dropZoneConverter.style.display = 'block';
-                    statusContainerConverter.classList.remove('active');
-                    resetBtnConverter.classList.remove('visible');
+                    dz2.style.display = 'block';
+                    stat2.classList.remove('active');
+                    rst2.classList.remove('visible');
                 }, 3000);
             }
         }
 
-        function resizeImageTo1280x720(file) {
-            return new Promise((resolve, reject) => {
-                const url = URL.createObjectURL(file);
-                const img = new Image();
-                img.onload = () => {
+        function convertOneImage(f) {
+            return new Promise((res, rej) => {
+                let url = URL.createObjectURL(f);
+                let img = new Image();
+                img.onload = function() {
                     URL.revokeObjectURL(url);
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 1280;
-                    canvas.height = 720;
-                    const ctx = canvas.getContext('2d');
+                    let cvs = document.createElement('canvas');
+                    cvs.width = 1280;
+                    cvs.height = 720;
+                    let ctx = cvs.getContext('2d');
 
-                    const imgRatio = img.width / img.height;
-                    const targetRatio = 1280 / 720;
-                    let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                    let r1 = img.width / img.height;
+                    let r2 = 1280 / 720;
+                    let dw, dh, ox = 0, oy = 0;
 
-                    if (imgRatio > targetRatio) {
-                        drawHeight = 720;
-                        drawWidth = img.width * (720 / img.height);
-                        offsetX = (1280 - drawWidth) / 2;
+                    // calc crop
+                    if (r1 > r2) {
+                        dh = 720;
+                        dw = img.width * (720 / img.height);
+                        ox = (1280 - dw) / 2;
                     } else {
-                        drawWidth = 1280;
-                        drawHeight = img.height * (1280 / img.width);
-                        offsetY = (720 - drawHeight) / 2;
+                        dw = 1280;
+                        dh = img.height * (1280 / img.width);
+                        oy = (720 - dh) / 2;
                     }
 
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                    ctx.drawImage(img, ox, oy, dw, dh);
 
-                    canvas.toBlob((blob) => { resolve(blob); }, "image/jpeg", 0.95);
+                    cvs.toBlob(function(b) { res(b); }, "image/jpeg", 0.95);
                 };
-                img.onerror = reject;
+                img.onerror = rej;
                 img.src = url;
             });
         }
 
-        downloadBtnConverter.addEventListener('click', () => {
-            if (!convertedZipBlob) return;
-            triggerDownload(convertedZipBlob, 'Atlas_Promo_Assets_1280x720.zip');
+        dl2.addEventListener('click', function() {
+            if (!promoBlob) return;
+            downloadBlob(promoBlob, 'Atlas_Promo_Assets_1280x720.zip');
         });
     </script>
 </body>
